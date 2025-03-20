@@ -1,6 +1,6 @@
 # 📊 Panorama de Ações
 
-Este projeto é uma aplicação interativa desenvolvida em **Python** utilizando **Streamlit** para a análise de preços históricos de ações da Bolsa de Valores. A ferramenta permite visualizar a evolução dos preços ao longo do tempo, analisar o desempenho dos ativos e facilitar a tomada de decisões para investidores e entusiastas do mercado financeiro.
+Este projeto é uma aplicação interativa desenvolvida em **Python** utilizando **Streamlit** para a análise de preços históricos de ações da Bolsa de Valores. A ferramenta permite visualizar a evolução dos preços ao longo do tempo, analisar o desempenho dos ativos e facilitar a tomada de decisões para investidores e entusiastas do mercado financeiro. Como resultado, exibe um gráfico em linha e o desenpenho em porcentagem de cada ação escolhida de forma individual assim como o agregado de uma carteira de ações.
 
 ## 🚀 Funcionalidades
 
@@ -19,6 +19,7 @@ Este projeto foi desenvolvido utilizando as seguintes tecnologias:
 - **Yahoo Finance API (yfinance)** – Para obtenção de dados históricos das ações.
 - **Matplotlib / Seaborn** *(opcional)* – Para visualizações mais avançadas dos dados.
 
+## Overview
 ![image](https://github.com/user-attachments/assets/89593697-79fa-421c-a712-589aeee30bbe)
 ![image](https://github.com/user-attachments/assets/8b8ae755-cea0-46fd-8827-d899211b1b30)
 
