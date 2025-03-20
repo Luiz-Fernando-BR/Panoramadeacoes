@@ -20,7 +20,7 @@ Este projeto foi desenvolvido utilizando as seguintes tecnologias:
 - **Matplotlib / Seaborn** *(opcional)* – Para visualizações mais avançadas dos dados.
 
 ![image](https://github.com/user-attachments/assets/89593697-79fa-421c-a712-589aeee30bbe)
-![image](https://github.com/user-attachments/assets/8b8ae755-cea0-46fd-8827-d899211b1b30)
+         ![image](https://github.com/user-attachments/assets/8b8ae755-cea0-46fd-8827-d899211b1b30)
 
 
 ## 📥 Como Executar o Projeto
