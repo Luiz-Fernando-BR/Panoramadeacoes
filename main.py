@@ -1,113 +1,97 @@
-# Importar as bibliotecas
+# importar as bibliotecas
 import streamlit as st
 import pandas as pd
 import yfinance as yf
-from datetime import date, timedelta
+from datetime import timedelta
 
-# Definir as datas padrão
-DATA_INICIAL_PADRAO = date(2000, 1, 1)
-DATA_FINAL_PADRAO = date.today() - timedelta(days=1)  # Último fechamento do mercado
-
-# Criar funções de carregamento de dados
+# criar as funções de carregamento de dados
+    # Cotações do Itau - ITUB4 - 2010 a 2024
 @st.cache_data
-def carregar_dados(empresas, data_inicio, data_fim):
-    if not empresas:
-        st.info("Nenhuma ação selecionada. Selecione pelo menos uma ação.")
-        return None
-
+def carregar_dados(empresas):
     texto_tickers = " ".join(empresas)
     dados_acao = yf.Tickers(texto_tickers)
-
-    try:
-        cotacoes_acao = dados_acao.history(period="1d", start=data_inicio.strftime("%Y-%m-%d"), end=data_fim.strftime("%Y-%m-%d"))
-    except Exception as e:
-        st.error(f"Ocorreu um erro ao tentar carregar os dados: {e}")
-        return None
-
-    if cotacoes_acao.empty:
-        st.error("Nenhum dado retornado. Verifique se os tickers estão corretos e se as datas estão dentro do período disponível.")
-        return None
-
+    cotacoes_acao = dados_acao.history(period="1d", start="2010-01-01", end="2024-07-01")
     cotacoes_acao = cotacoes_acao["Close"]
     return cotacoes_acao
 
 @st.cache_data
 def carregar_tickers_acoes():
-    # Simulando a leitura de um arquivo CSV de tickers
-    # Substitua pelo seu arquivo real "IBOV.csv"
     base_tickers = pd.read_csv("IBOV.csv", sep=";")
     tickers = list(base_tickers["Código"])
     tickers = [item + ".SA" for item in tickers]
     return tickers
 
-# Carregar os tickers
 acoes = carregar_tickers_acoes()
+dados = carregar_dados(acoes)
 
-# Criar a interface do Streamlit
+# criar a interface do streamlit
 st.write("""
 # App Preço de Ações
-O gráfico abaixo representa a evolução do preço das ações ao longo dos anos.
-""")
+O gráfico abaixo representa a evolução do preço das ações ao longo dos anos
+""") # markdown
 
-# Sidebar para filtros
+# prepara as visualizações = filtros
 st.sidebar.header("Filtros")
 
-# Filtro de ações
-lista_acoes = st.sidebar.multiselect("Escolha as ações para visualizar", acoes)
+# filtro de acoes
+lista_acoes = st.sidebar.multiselect("Escolha as ações para visualizar", dados.columns)
+if lista_acoes:
+    dados = dados[lista_acoes]
+    if len(lista_acoes) == 1:
+        acao_unica = lista_acoes[0]
+        dados = dados.rename(columns={acao_unica: "Close"})
+        
+# filtro de datas
+data_inicial = dados.index.min().to_pydatetime()
+data_final = dados.index.max().to_pydatetime()
+intervalo_data = st.sidebar.slider("Selecione o período", 
+                                   min_value=data_inicial, 
+                                   max_value=data_final,
+                                   value=(data_inicial, data_final),
+                                   step=timedelta(days=1))
 
-# Filtros de data
-data_inicial = st.sidebar.date_input("Selecione a Data Inicial", DATA_INICIAL_PADRAO, min_value=DATA_INICIAL_PADRAO, max_value=DATA_FINAL_PADRAO)
-data_final = st.sidebar.date_input("Selecione a Data Final", DATA_FINAL_PADRAO, min_value=DATA_INICIAL_PADRAO, max_value=DATA_FINAL_PADRAO)
+dados = dados.loc[intervalo_data[0]:intervalo_data[1]]
 
-# Verificar se a data inicial não é maior que a final
-if data_inicial > data_final:
-    st.error("A data inicial deve ser menor ou igual à data final.")
-    st.stop()
+# criar o grafico
+st.line_chart(dados)
 
-# Carregar os dados conforme as datas escolhidas
-dados = carregar_dados(lista_acoes, data_inicial, data_final)
 
-if dados is not None:
-    if not lista_acoes:
-        st.write("Por favor, selecione pelo menos uma ação para visualizar.")
+# calculo de perfomance
+texto_performance_ativos = ""
+
+if len(lista_acoes)==0:
+    lista_acoes = list(dados.columns)
+elif len(lista_acoes)==1:
+    dados = dados.rename(columns={"Close": acao_unica})
+
+
+carteira = [1000 for acao in lista_acoes]
+total_inicial_carteira = sum(carteira)
+
+for i, acao in enumerate(lista_acoes):
+    performance_ativo = dados[acao].iloc[-1] / dados[acao].iloc[0] - 1
+    performance_ativo = float(performance_ativo)
+
+    carteira[i] = carteira[i] * (1 + performance_ativo)
+
+    if performance_ativo > 0:
+        # :cor[texto]
+        texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: :green[{performance_ativo:.1%}]"
+    elif performance_ativo < 0:
+        texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: :red[{performance_ativo:.1%}]"
     else:
-        # Filtra os dados conforme as ações escolhidas
-        dados = dados[lista_acoes] if lista_acoes else dados
+        texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: {performance_ativo:.1%}"
 
-        # Criar o gráfico
-        st.line_chart(dados)
+total_final_carteira = sum(carteira)
+performance_carteira = total_final_carteira / total_inicial_carteira - 1
 
-        # Cálculo de performance
-        texto_performance_ativos = ""
+if performance_carteira > 0:
+    texto_performance_carteira = f"Performance da carteira com todos os ativos: :green[{performance_carteira:.1%}]"
+elif performance_carteira < 0:
+    texto_performance_carteira = f"Performance da carteira com todos os ativos: :red[{performance_carteira:.1%}]"
+else:
+    texto_performance_carteira = f"Performance da carteira com todos os ativos: {performance_carteira:.1%}"
 
-        carteira = [1000 for _ in lista_acoes]
-        total_inicial_carteira = sum(carteira)
-
-        for i, acao in enumerate(lista_acoes):
-            try:
-                performance_ativo = dados[acao].iloc[-1] / dados[acao].iloc[0] - 1
-                performance_ativo = float(performance_ativo)
-
-                carteira[i] = carteira[i] * (1 + performance_ativo)
-
-                if performance_ativo > 0:
-                    texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: :green[{performance_ativo:.1%}]"
-                elif performance_ativo < 0:
-                    texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: :red[{performance_ativo:.1%}]"
-                else:
-                    texto_performance_ativos = texto_performance_ativos + f"  \n{acao}: {performance_ativo:.1%}"
-            except IndexError:
-                    texto_performance_ativos += f"  \n{acao}: :gray[Sem dados suficientes]"
-
-        total_final_carteira = sum(carteira)
-        performance_carteira = total_final_carteira / total_inicial_carteira - 1
-
-        if performance_carteira > 0:
-            texto_performance_carteira = f"Performance da carteira com todos os ativos: :green[{performance_carteira:.1%}]"
-        elif performance_carteira < 0:
-            texto_performance_carteira = f"Performance da carteira com todos os ativos: :red[{performance_carteira:.1%}]"
-        else:
-            texto_performance_carteira = f"Performance da carteira com todos os ativos: {performance_carteira:.1%}"
 
 
 st.write(f"""
